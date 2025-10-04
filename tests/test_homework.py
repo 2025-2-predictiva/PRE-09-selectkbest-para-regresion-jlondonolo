@@ -1,44 +1,34 @@
 """Autograding script."""
 
+import pickle
 
-def load_data():
+import pandas as pd
+from sklearn.metrics import mean_squared_error
 
-    import pandas as pd
 
-    dataset = pd.read_csv("auto_mpg.csv")
+def test_01():
+    """Test if the model is able to predict the MPG of a car."""
+
+    dataset = pd.read_csv("files/input/auto_mpg.csv")
     dataset = dataset.dropna()
     dataset["Origin"] = dataset["Origin"].map(
         {1: "USA", 2: "Europe", 3: "Japan"},
     )
-    y = dataset.pop("MPG")
-    x = dataset.copy()
+    dataset = pd.get_dummies(dataset, columns=["Origin"], prefix="", prefix_sep="")
+    y_true = dataset.pop("MPG")
 
-    return x, y
+    with open("homework/mlp.pickle", "rb") as file:
+        mlp = pickle.load(file)
 
+    with open("homework/features_scaler.pickle", "rb") as file:
+        features_scaler = pickle.load(file)
 
-def load_estimator():
+    standarized_dataset = features_scaler.transform(dataset)
+    y_pred = mlp.predict(standarized_dataset)
 
-    import os
-    import pickle
-
-    if not os.path.exists("estimator.pickle"):
-        return None
-    with open("estimator.pickle", "rb") as file:
-        estimator = pickle.load(file)
-
-    return estimator
-
-
-def test_01():
-
-    from sklearn.metrics import accuracy_score
-
-    x, y = load_data()
-    estimator = load_estimator()
-
-    accuracy = accuracy_score(
-        y_true=y,
-        y_pred=estimator.predict(x),
+    mse = mean_squared_error(
+        y_true=y_true,
+        y_pred=y_pred,
     )
 
-    assert accuracy > 0.9545
+    assert mse < 7.745
